@@ -57,7 +57,7 @@ def select_images(
 
         differences = calculate_feature_diffs(img_features, features)
 
-        diff_value = min(differences) if isinstance(differences, list) else 0
+        diff_value = min(differences) if isinstance(differences, list) or differences == [] else 0
         if find_distinct:
             copy_file = True if (diff_value is None) or (diff_value > th) else False
         else:
