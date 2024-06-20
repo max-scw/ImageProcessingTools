@@ -31,6 +31,7 @@ def select_images(
 ):
     # build suffix for pathlib object
     suffix = f".{file_extension.strip('.')}"
+    source = Path(source)
 
     logging.debug("Build descriptor model")
     model, preprocess = build_descriptor_model()
