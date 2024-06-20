@@ -37,8 +37,8 @@ def select_images(
     model, preprocess = build_descriptor_model()
 
     logging.info(f"Describe extra images")
-    if len(extra_files) == 1 and extra_files[0].is_dir():
-        extra_ = list(extra_files[0].rglob("*" + suffix))
+    if len(extra_files) == 1 and Path(extra_files[0]).is_dir():
+        extra_ = list(Path(extra_files[0]).rglob("*" + suffix))
     else:
         extra_ = extra_files
 
@@ -57,7 +57,7 @@ def select_images(
 
         differences = calculate_feature_diffs(img_features, features)
 
-        diff_value = min(differences) if isinstance(differences, list) or differences == [] else 0
+        diff_value = min(differences) if isinstance(differences, list) or differences == [] else 0 # FIXME
         if find_distinct:
             copy_file = True if (diff_value is None) or (diff_value > th) else False
         else:
