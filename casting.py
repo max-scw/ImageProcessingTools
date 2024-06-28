@@ -59,3 +59,4 @@ def cast_logging_level(var: str, default: int = logging.INFO) -> int:
                 return val
     else:
         return default
+    return var
