@@ -8,6 +8,7 @@ from math import floor
 
 from eliminate_duplicates import build_descriptor_model, describe_image
 from casting import cast_logging_level
+from delete_files import delete_files
 
 from typing import List, Union
 
@@ -22,7 +23,7 @@ def select_images(
         destination: Union[str, Path],  # export directory to compy images to
         threshold: float,
         find_distinct: bool = False,  # find similar or distinct images
-        delete_files: bool = False,  # delete not used files afterwards?
+        delete_files_flag: bool = False,  # delete not used files afterwards?
         file_extension: str = "jpg",  # image extension
         extra_files: List[Union[str, Path]] = None,  # directory or list of extra files
         th_scheduler_window: int = 200,  # linear de/increasing scheduler
@@ -32,6 +33,7 @@ def select_images(
     # build suffix for pathlib object
     suffix = f".{file_extension.strip('.')}"
     source = Path(source)
+    destination = Path(destination)
 
     logging.debug("Build descriptor model")
     model, preprocess = build_descriptor_model()
@@ -91,12 +93,8 @@ def select_images(
     logging.info(f"Done. {len(features) - len(extra_)} files copied.")
 
     # delete files
-    if delete_files:
-        logging.info(f"Deleting {len(unused_files)} files")
-        for p2fl in tqdm(unused_files):
-            p2fl.unlink()
-            shutil.rmtree(p2fl.parent)
-        logging.info(f"Done deleting unused files.")
+    if delete_files_flag:
+        delete_files(unused_files)
 
 
 if __name__ == '__main__':
@@ -148,7 +146,7 @@ if __name__ == '__main__':
         # find similar or distinct images
         find_distinct=opt.find_distinct,
         # delete not used files afterwards?
-        delete_files=opt.delete_files,
+        delete_files_flag=opt.delete_files,
         # how many files to scan?
         max_n_files=opt.max_n_files
     )
