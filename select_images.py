@@ -6,8 +6,8 @@ import logging
 import sys
 from math import floor
 
-from eliminate_duplicates import build_descriptor_model, describe_image
-from casting import cast_logging_level
+from utils.describe_images import build_descriptor_model, describe_image
+from utils.casting import cast_logging_level
 from delete_files import delete_files
 
 from typing import List, Union
@@ -114,7 +114,7 @@ if __name__ == '__main__':
     parser.add_argument("--delete-files", action="store_true", help="Delete files from source afterwards")
     parser.add_argument("--max-n-files", type=int, default=-1, help="Number of files to scan through.")
 
-    parser.add_argument("--logging-level", type=str, default="DEBUG", help="Logging level")
+    parser.add_argument("--logging-level", type=str, default="INFO", help="Logging level")
 
     opt = parser.parse_args()
 

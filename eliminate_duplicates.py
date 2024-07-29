@@ -1,14 +1,13 @@
 from pathlib import Path
 import shutil
-from PIL import Image
+from argparse import ArgumentParser
+import sys
 
 from tqdm import tqdm
+import logging
 
-import torch
-import torch.nn as nn
-import torchvision.models as models
-import torchvision.transforms as transforms
-
+from utils.casting import cast_logging_level
+from utils.describe_images import describe_images
 
 from typing import Union, List, Dict
 
@@ -20,46 +19,6 @@ def get_file_paths_with_dir(root_dir: str, file_extension: str):
     result = subprocess.run(command, capture_output=True, text=True, shell=True)
     paths = result.stdout.splitlines()
     return paths
-
-
-def build_descriptor_model():
-    # Load a pre-trained model
-    model = models.mobilenet_v3_small(weights=models.MobileNet_V3_Small_Weights.IMAGENET1K_V1)
-    # Remove the classification layer (we only want the feature extractor)
-    model = nn.Sequential(*list(model.children())[:-1])
-    # Set the model to evaluation mode
-    model.eval()
-
-    # set up preprocessing
-    preprocess = transforms.Compose([
-        transforms.Resize(256),
-        transforms.CenterCrop(224),
-        transforms.ToTensor(),
-        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
-    ])
-
-    return model, preprocess
-
-
-def describe_image(p2img: Union[Path, str], model, preprocess) -> torch.tensor:
-    # load image as color image (preprocessing expects an image with 3 channels)
-    img = Image.open(p2img).convert("RGB")
-    # preprocess image to apply the NN
-    input_tensor = preprocess(img)
-    input_batch = input_tensor.unsqueeze(0)  # Add a batch dimension
-    # Encode the image using the pre-trained model
-    with torch.no_grad():
-        encoded_features = model(input_batch)
-    return encoded_features.squeeze()
-
-
-def describe_images(files: List[Union[Path, str]]) -> Dict[Path, torch.tensor]:
-    model, preprocess = build_descriptor_model()
-
-    image_features = dict()
-    for p2img in tqdm(files, desc="Describe images"):
-        image_features[p2img] = describe_image(p2img, model, preprocess)
-    return image_features
 
 
 def get_exceptional_images(
@@ -85,3 +44,67 @@ def get_exceptional_images(
     return exceptional_images_new
 
 
+if __name__ == "__main__":
+    parser = ArgumentParser()
+    parser.add_argument("--source", type=str, help="Directory where the images are stored.")
+    parser.add_argument("--destination", type=str, default="",
+                        help="Directory to copy the selected images to")
+    parser.add_argument("--file-extension", type=str, default="", help="File type")
+    parser.add_argument("--extra", type=str, default="", nargs="+", help="Example files that should be ex/included.")
+
+    parser.add_argument("--threshold", type=float, default=0.3, help="Threshold for differentiation")
+
+    parser.add_argument("--find-distinct", action="store_true",
+                        help="Select distinct files (selects similar files per default)")
+
+    parser.add_argument("--logging-level", type=str, default="INFO", help="Logging level")
+
+    opt = parser.parse_args()
+
+    # set up logging
+    level = cast_logging_level(opt.logging_level, logging.INFO)
+    logging.basicConfig(
+        level=level,
+        format="%(asctime)s [%(levelname)s] %(message)s",
+        handlers=[logging.StreamHandler(sys.stdout)]
+    )
+
+    logging.debug(f"Input arguments: {opt}")
+
+    # process input
+    source = Path(opt.source)
+    existing_images = Path(opt.extra)
+    image_extension = opt.file_extension.strip(".")
+
+    # export folder
+    destination = Path(opt.destination)
+
+    logging.debug(f"get files in {source.as_posix()}(f'*.{image_extension}') ...")
+    # p2images_new = list(folder.rglob(f"*.{image_extension}"))
+    p2images_new = get_file_paths_with_dir(source.as_posix(), image_extension)
+    logging.debug(f"Describe {len(p2images_new)} images by MobileNetV3 ...")
+    features = describe_images(p2images_new)
+
+    # p2images_old = list(existing_images.rglob(f"*.{image_extension}"))
+    p2images_old = get_file_paths_with_dir(existing_images.as_posix(), image_extension)
+    logging.debug(f"Describe {len(p2images_old)} existing images by MobileNetV3 ...")
+    features_existing_images = describe_images(p2images_old)
+
+    logging.info("Get exceptional images ...")
+    images = get_exceptional_images(
+        features,
+        mse_threshold=opt.threshold,
+        # directory or list of extra files
+        existing_features=features_existing_images
+    )
+
+    logging.info("Copying images ...")
+    # move and rename images
+    if not destination.exists():
+        destination.mkdir()
+
+    for img in tqdm(images, desc="Copy images"):
+        # fldr = p2img.parent.name
+        p2export = destination / "_".join(img.parts[-2:])
+        # copy file (+ rename)
+        shutil.copy(img, p2export)
