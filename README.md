@@ -58,9 +58,6 @@ ImageProcessingTools
 ## Notes
 Functions are tested on Python 3.11.
 
-## Roadmap
-- make commandline tools from functions
-
 ## Authors and acknowledgment
 - max-scw
 
