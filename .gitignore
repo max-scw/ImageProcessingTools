@@ -170,3 +170,5 @@ cython_debug/
 /selected_images/
 /data/
 /output/
+/COCO_Labels_Segment/
+*.txt
