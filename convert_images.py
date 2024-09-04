@@ -16,11 +16,6 @@ if __name__ == '__main__':
 
     opt = parser.parse_args()
 
-    opt.source = r"C:\Users\schwmax\Proj\Coding\YOLOv7_scw\dataset\Damper300\data1"
-    opt.file_extension = ".bmp"
-    opt.destination = "selected_images"
-    opt.target_file_type = ".jpg"
-
     destination = Path(opt.destination)
 
     files = list(Path(opt.source).glob("*." + opt.file_extension.strip(".") if opt.file_extension else "*"))
